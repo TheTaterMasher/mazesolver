@@ -32,11 +32,11 @@ class Maze():
         # (i , j) = (y , x)
         self._cells[i][j].draw()
 
-    def _animate(self):
+    def _animate(self, time):
         if self._win is None:
             return
         self._win.redraw()
-        sleep(0.04)
+        sleep(time)
 
     def _break_entrance_and_exit(self):
         if not self._cells:
@@ -94,10 +94,12 @@ class Maze():
                 cell._visited = False
 
     def _solve_r(self, i, j):
-        self._animate()
+        self._animate(0.02)
         current = self._cells[i][j]
         current._visited = True
         if i == (self._num_rows-1) and j == (self._num_columns-1):
+            self._win.draw_circle(current.p1.x, current.p1.y, current.p4.x, current.p4.y)
+            self._animate(.5)
             return True
         directions = [(0,1), (1,0), (0, -1), (-1, 0)] # right  down  left  up
         # (i , j) = (y , x)
@@ -128,6 +130,7 @@ class Maze():
                             return True
                         else:
                             current.draw_move(next, True)
+                            self._animate(0.3) # make backtracking slightly slower
         return False
 
     def _solve(self):
