@@ -94,12 +94,12 @@ class Maze():
                 cell._visited = False
 
     def _solve_r(self, i, j):
-        self._animate(0.02)
         current = self._cells[i][j]
         current._visited = True
+        self._animate(0.02)
         if i == (self._num_rows-1) and j == (self._num_columns-1):
-            self._win.draw_circle(current.p1.x, current.p1.y, current.p4.x, current.p4.y)
-            self._animate(.5)
+            self._win.draw_circle(current.p1.x + (self._cell_size_x//4), current.p1.y + (self._cell_size_y//4), current.p4.x - (self._cell_size_x//4), current.p4.y - (self._cell_size_y//4))
+            self._animate(1)
             return True
         directions = [(0,1), (1,0), (0, -1), (-1, 0)] # right  down  left  up
         # (i , j) = (y , x)
@@ -126,6 +126,7 @@ class Maze():
                     next = self._cells[h][k]
                     if not next._visited:
                         current.draw_move(next)
+                        self._win.canvas.delete()
                         if self._solve_r(h, k):
                             return True
                         else:
@@ -134,7 +135,7 @@ class Maze():
         return False
 
     def _solve(self):
-        self._win.draw_circle(self._x_offset, self._y_offset, self._x_offset + self._cell_size_x, self. _y_offset + self._cell_size_y)
+        self._win.draw_circle(self._x_offset + (self._cell_size_x//4), self._y_offset + (self._cell_size_y//4), self._x_offset + self._cell_size_x - (self._cell_size_x//4), (self._y_offset + self._cell_size_y - (self._cell_size_y//4)))
         if self._solve_r(0, 0):
             print("End Reached")
         else:

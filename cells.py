@@ -21,24 +21,24 @@ class Cell():
         if self.has_left_wall:
             self._win.draw_line(left)
         else:
-            self._win.draw_line(left, "white")
+            self._win.draw_line(left, fill_color="white", width=4)
         if self.has_top_wall:
             self._win.draw_line(top)
         else:
-            self._win.draw_line(top, "white")
+            self._win.draw_line(top, fill_color="white", width=4)
         if self.has_right_wall:
             self._win.draw_line(right)
         else:
-            self._win.draw_line(right, "white")
+            self._win.draw_line(right, fill_color="white", width=4)
         if self.has_bottom_wall:
             self._win.draw_line(bottom)
         else:
-            self._win.draw_line(bottom, "white")
+            self._win.draw_line(bottom, fill_color="white", width=4)
 
     def draw_move(self, to_cell, undo=False):
-        color = "red"
+        color = "green"
         if undo:
-            color = "gray"
+            color = "red"
         p1 = Point(self._center[0], self._center[1])
         p2 = Point(to_cell._center[0], to_cell._center[1])
         line = Line(p1, p2)
