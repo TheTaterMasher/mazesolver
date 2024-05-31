@@ -19,12 +19,6 @@ class Window():
         while self.active:
             self.redraw()
 
-    def draw_line(self, line, fill_color="black", width=2):
-        line.draw(self.canvas, fill_color)
-
-    def draw_circle(self, x1, y1, x2, y2):
-        self.canvas.create_oval(x1, y1, x2, y2, fill="black")
-
     def close(self):
         self.active = False
 
@@ -33,12 +27,15 @@ class Point():
         self.x = x
         self.y = y
 
-class Line():
-    def __init__(self, p1, p2):
-        self.p1 = p1
-        self.p2 = p2
+    def __repr__(self):
+        return f"({self.x}, {self.y})"
 
-    def draw(self, canvas, fill_color="black", width=2):
-        canvas.create_line(
-            self.p1.x, self.p1.y, self.p2.x, self.p2.y, capstyle="round", fill=fill_color, width=width
+class Line():
+    def __init__(self, p1, p2, canvas, capstyle="round", fill_color="black", width=8):
+        self.line_id = canvas.create_line(
+            p1.x, p1.y, p2.x, p2.y, capstyle=capstyle, fill=fill_color, width=width
         )
+
+class Circle():
+    def __init__(self, x1, y1, x2, y2, canvas, fill_color="blue"):
+        self.circle_id = canvas.create_oval(x1, y1, x2, y2, fill=fill_color)
