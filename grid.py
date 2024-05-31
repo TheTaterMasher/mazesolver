@@ -1,18 +1,20 @@
-from random import randint
+from random import randint, seed
 from time import sleep
 from graphics import Window, Point, Line, Circle
+from tkinter import Button
 class Grid():
     def __init__(self, grid_size, display_size):
         self.grid_size = grid_size
         self.display_size = display_size
         self.cell_size = display_size // (grid_size + 1)
         self.offset = self.cell_size // 2
-        self.win = Window(display_size, display_size)
+        self.win = Window(display_size, display_size, button_func=self.reset_button_func)
         self.points = []
         self.cells = []
-        self.lines = {}
+        self.grid_lines = {}
         self.solve_lines = {}
 
+        # create all points and cells
         for i in range(grid_size + 1): # i values are the y cords
             self.points.append([])
             if not i == grid_size:
@@ -22,24 +24,51 @@ class Grid():
                 if not i == grid_size and not j == grid_size:
                     self.cells[i].append(Cell(j,i))
 
+        # create all grid lines
         for i in range(grid_size + 1):
             for j in range(grid_size + 1):
                 if j < grid_size:
                     p1 = Point((self.offset+(j*self.cell_size)), (self.offset+(i*self.cell_size)))
                     p2 = Point((self.offset+((j+1)*self.cell_size)), (self.offset+(i*self.cell_size)))
-                    self.lines[(self.points[i][j],self.points[i][j+1])] = Line(p1, p2, self.win.canvas)
+                    self.grid_lines[(self.points[i][j],self.points[i][j+1])] = Line(p1, p2, self.win.canvas)
                 if i < grid_size:
                     p1 = Point((self.offset+(j*self.cell_size)), (self.offset+(i*self.cell_size)))
                     p2 = Point((self.offset+(j*self.cell_size)), (self.offset+((i+1)*self.cell_size)))
-                    self.lines[(self.points[i][j],self.points[i+1][j])] = Line(p1, p2, self.win.canvas)
-    
+                    self.grid_lines[(self.points[i][j],self.points[i+1][j])] = Line(p1, p2, self.win.canvas)
+
+    def reset_button_func(self):
+        self.reset_grid()
+        self.create_maze()
+        sleep(0.5)
+        self.solve()
+
+    def reset_grid(self):
+        # reset lines
+        self.grid_lines = {}
+        self.solve_lines = {}
+
+        # reset canvas
+        self.win.canvas.delete("all")
+
+        # create all grid lines
+        for i in range(self.grid_size + 1):
+            for j in range(self.grid_size + 1):
+                if j < self.grid_size:
+                    p1 = Point((self.offset+(j*self.cell_size)), (self.offset+(i*self.cell_size)))
+                    p2 = Point((self.offset+((j+1)*self.cell_size)), (self.offset+(i*self.cell_size)))
+                    self.grid_lines[(self.points[i][j],self.points[i][j+1])] = Line(p1, p2, self.win.canvas)
+                if i < self.grid_size:
+                    p1 = Point((self.offset+(j*self.cell_size)), (self.offset+(i*self.cell_size)))
+                    p2 = Point((self.offset+(j*self.cell_size)), (self.offset+((i+1)*self.cell_size)))
+                    self.grid_lines[(self.points[i][j],self.points[i+1][j])] = Line(p1, p2, self.win.canvas)
+
     def create_maze(self):
-        self.win.canvas.delete(self.lines[(self.points[0][0],self.points[0][1])].line_id) # break entrance wall
-        del self.lines[(self.points[0][0],self.points[0][1])]
+        self.win.canvas.delete(self.grid_lines[(self.points[0][0],self.points[0][1])].line_id) # break entrance wall
+        del self.grid_lines[(self.points[0][0],self.points[0][1])]
         self.cells[0][0].has_top_wall = False
 
-        self.win.canvas.delete(self.lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])].line_id) # break exit wall
-        del self.lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])]
+        self.win.canvas.delete(self.grid_lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])].line_id) # break exit wall
+        del self.grid_lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])]
         self.cells[self.grid_size-1][self.grid_size-1].has_bottom_wall = False
 
         self.break_walls_r(0,0)
@@ -65,26 +94,26 @@ class Grid():
                         case (0,1): # right
                                 current.has_right_wall = False
                                 next.has_left_wall = False
-                                self.win.canvas.delete(self.lines[(self.points[i][j+1],self.points[i+1][j+1])].line_id) # break right wall
-                                del self.lines[(self.points[i][j+1],self.points[i+1][j+1])]
+                                self.win.canvas.delete(self.grid_lines[(self.points[i][j+1],self.points[i+1][j+1])].line_id) # break right wall
+                                del self.grid_lines[(self.points[i][j+1],self.points[i+1][j+1])]
                                 self.break_walls_r(h, k)
                         case (1,0): # down
                                 current.has_bottom_wall = False
                                 next.has_top_wall = False
-                                self.win.canvas.delete(self.lines[(self.points[i+1][j],self.points[i+1][j+1])].line_id) # break bottom wall
-                                del self.lines[(self.points[i+1][j],self.points[i+1][j+1])]
+                                self.win.canvas.delete(self.grid_lines[(self.points[i+1][j],self.points[i+1][j+1])].line_id) # break bottom wall
+                                del self.grid_lines[(self.points[i+1][j],self.points[i+1][j+1])]
                                 self.break_walls_r(h, k)
                         case (0,-1): # left
                                 current.has_left_wall = False
                                 next.has_right_wall = False
-                                self.win.canvas.delete(self.lines[(self.points[i][j],self.points[i+1][j])].line_id) # break left wall
-                                del self.lines[(self.points[i][j],self.points[i+1][j])]
+                                self.win.canvas.delete(self.grid_lines[(self.points[i][j],self.points[i+1][j])].line_id) # break left wall
+                                del self.grid_lines[(self.points[i][j],self.points[i+1][j])]
                                 self.break_walls_r(h, k)
                         case (-1,0): # up
                                 current.has_top_wall = False
                                 next.has_bottom_wall = False
-                                self.win.canvas.delete(self.lines[(self.points[i][j],self.points[i][j+1])].line_id) # break top wall
-                                del self.lines[(self.points[i][j],self.points[i][j+1])]
+                                self.win.canvas.delete(self.grid_lines[(self.points[i][j],self.points[i][j+1])].line_id) # break top wall
+                                del self.grid_lines[(self.points[i][j],self.points[i][j+1])]
                                 self.break_walls_r(h, k)
     
     def solve_r(self, i, j):
@@ -141,18 +170,45 @@ class Grid():
                             self.current_cell = Circle(self.offset+(j*self.cell_size)+(self.cell_size//4), self.offset+(i*self.cell_size)+(self.cell_size//4), self.offset+((j+1)*self.cell_size)-(self.cell_size//4), self.offset+((i+1)*self.cell_size)-(self.cell_size//4), self.win.canvas)
                             self.win.redraw()
                             sleep(.2) # sleep to make backtracking slightly slower
+        self.cells[i][j].backtracked = True
 
     def solve(self):
         self.current_cell = Circle(self.offset+(self.cell_size//4), self.offset+(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.win.canvas)
         if self.solve_r(0, 0):
-            print("End Reached")
+            print("--End Reached--")
         else:
-            print("End Not Found")
+            print("--End Not Found--")
+        # reset cells walls and visited state
+        solve_cells_visited = 0
+        cells_backtracked = 0
+
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if self.cells[i][j].visited:
+                    solve_cells_visited += 1
+                    if self.cells[i][j].backtracked:
+                        cells_backtracked += 1
+                self.cells[i][j].has_left_wall = True
+                self.cells[i][j].has_right_wall = True
+                self.cells[i][j].has_top_wall = True
+                self.cells[i][j].has_bottom_wall = True
+                self.cells[i][j].visited = False
+                self.cells[i][j].backtracked = False
+        print("----------------")
+        print(f"total cells: {self.grid_size**2}")
+        print("----------------")
+        print(f"cells in solve: {solve_cells_visited}")
+        print(f"solve eff: {int((solve_cells_visited / (self.grid_size**2)) * 100)}%")
+        print("----------------")
+        print(f"cells backtracked: {cells_backtracked}")
+        print(f"backtracking: {int((cells_backtracked / solve_cells_visited) * 100)}%")
+        print("----------------")
 
 class Cell():
     def __init__(self, x, y): # the cell's (x,y) cords are its top left corner
         self.x = x
         self.y = y
+        self.backtracked = False
         self.has_left_wall = True
         self.has_right_wall = True
         self.has_top_wall = True
