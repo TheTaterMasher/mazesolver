@@ -4,13 +4,16 @@ from cell import Cell
 from graphics import Window, Point, Line, Circle
 import csv
 import os
+from tkinter import BOTH
+
 class Grid():
-    def __init__(self, grid_size=18, display_size=1000):
+    def __init__(self, grid_size=4, display_size=1000):
         self.grid_size = grid_size
         self.display_size = display_size
         self.cell_size = display_size // (grid_size + 1)
         self.offset = self.cell_size // 2
-        self.win = Window(display_size, self.reset_button_func)
+        self.win = Window(display_size, self.reset_button_func, self.set_grid_size_button_func)
+        self.is_solving = False
         self.points = []
         self.cells = []
         self.grid_lines = {}
@@ -46,24 +49,54 @@ class Grid():
                 writer.writerow(field)
 
     def reset_button_func(self):
+        # prevent the button from working while a solve is in progress
+        if self.is_solving:
+            return
+        # resets the grid and redraws a maze
         self.reset_grid()
         self.create_maze()
         sleep(0.5)
+        # stats stroed in csv file after solve
         results = self.solve()
         with open("stats.csv", "a", newline="") as stats:
             writer = csv.writer(stats) 
             writer.writerow([f"{self.grid_size}", f"{results[0]}", f"{results[1]}", f"{results[2]}", f"{results[3]}"])
-            
+
+    def set_grid_size_button_func(self):
+        # prevent the button from working while a solve is in progress
+        if self.is_solving:
+            return
+        # cycle grid size from 4 to 32 by an increment of 4
+        self.grid_size += 4
+        if self.grid_size >32:
+            self.grid_size = 4
+        self.cell_size = self.display_size // (self.grid_size + 1)
+        self.offset = self.cell_size // 2
+        self.reset_grid()
+        self.win.set_grid_size_button.pack(fill=BOTH, expand=1)
+        self.win.redraw()
 
     def reset_grid(self):
-        # reset lines
+        # reset lines, points and cells
+        self.points = []
+        self.cells = []
         self.grid_lines = {}
         self.solve_lines = {}
 
         # reset canvas
         self.win.canvas.delete("all")
 
-        # create all grid lines
+        # recreate all points and cells, this is necessary to do if the grid size changes
+        for i in range(self.grid_size + 1): # i values are the y cords
+            self.points.append([])
+            if not i == self.grid_size:
+                self.cells.append([])
+            for j in range(self.grid_size + 1): # j values are the x cords
+                self.points[i].append(Point(j,i))
+                if not i == self.grid_size and not j == self.grid_size:
+                    self.cells[i].append(Cell(j,i))
+
+        # recreate all grid lines
         for i in range(self.grid_size + 1):
             for j in range(self.grid_size + 1):
                 if j < self.grid_size:
@@ -76,15 +109,19 @@ class Grid():
                     self.grid_lines[(self.points[i][j],self.points[i+1][j])] = Line(p1, p2, self.win.canvas)
 
     def create_maze(self):
-        self.win.canvas.delete(self.grid_lines[(self.points[0][0],self.points[0][1])].line_id) # break entrance wall
+        # break entrance wall
+        self.win.canvas.delete(self.grid_lines[(self.points[0][0],self.points[0][1])].line_id)
         del self.grid_lines[(self.points[0][0],self.points[0][1])]
         self.cells[0][0].has_top_wall = False
-
-        self.win.canvas.delete(self.grid_lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])].line_id) # break exit wall
+        
+        # break exit wall
+        self.win.canvas.delete(self.grid_lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])].line_id)
         del self.grid_lines[(self.points[self.grid_size][self.grid_size-1],self.points[self.grid_size][self.grid_size])]
         self.cells[self.grid_size-1][self.grid_size-1].has_bottom_wall = False
 
         self.break_walls_r(0,0)
+
+        # reset cells visited state
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 self.cells[i][j].visited = False
@@ -129,6 +166,42 @@ class Grid():
                                 del self.grid_lines[(self.points[i][j],self.points[i][j+1])]
                                 self.break_walls_r(h, k)
     
+    def solve(self):
+        self.is_solving = True
+        self.current_cell = Circle(self.offset+(self.cell_size//4), self.offset+(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.win.canvas)
+        
+        self.solve_r(0, 0)
+
+        solve_cells_visited = 0
+        solve_cells_backtracked = 0
+
+        # reset cells walls and visited state
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if self.cells[i][j].visited:
+                    solve_cells_visited += 1
+                    if self.cells[i][j].backtracked:
+                        solve_cells_backtracked += 1
+                self.cells[i][j].has_left_wall = True
+                self.cells[i][j].has_right_wall = True
+                self.cells[i][j].has_top_wall = True
+                self.cells[i][j].has_bottom_wall = True
+                self.cells[i][j].visited = False
+                self.cells[i][j].backtracked = False
+        solve_eff = int((solve_cells_visited / (self.grid_size**2)) * 100)
+        backtrack_eff = int((solve_cells_backtracked / solve_cells_visited) * 100)
+        # print("----------------")
+        # print(f"total cells: {self.grid_size**2}")
+        # print("----------------")
+        # print(f"cells in solve: {solve_cells_visited}")
+        # print(f"solve eff: {solve_eff}%")
+        # print("----------------")
+        # print(f"cells backtracked: {solve_cells_backtracked}")
+        # print(f"backtracking: {backtrack_eff}%")
+        # print("----------------")
+        self.is_solving = False
+        return solve_cells_visited, solve_eff, solve_cells_backtracked, backtrack_eff
+
     def solve_r(self, i, j):
         # redraw circle at current cell
         self.win.canvas.delete(self.current_cell.circle_id)
@@ -136,8 +209,9 @@ class Grid():
         
         self.win.redraw()
         sleep(0.05) # sleep to show the solve steps
-
-        if i == self.grid_size-1 and j == self.grid_size-1: # check if at exit cell
+        
+        # check if at exit cell
+        if i == self.grid_size-1 and j == self.grid_size-1:
             return True
         
         current = self.cells[i][j]
@@ -184,37 +258,3 @@ class Grid():
                             self.win.redraw()
                             sleep(.2) # sleep to make backtracking slightly slower
         self.cells[i][j].backtracked = True
-
-    def solve(self):
-        self.current_cell = Circle(self.offset+(self.cell_size//4), self.offset+(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.win.canvas)
-        if self.solve_r(0, 0):
-            print("--End Reached--")
-        else:
-            print("--End Not Found--")
-        solve_cells_visited = 0
-        solve_cells_backtracked = 0
-        # reset cells walls and visited state
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                if self.cells[i][j].visited:
-                    solve_cells_visited += 1
-                    if self.cells[i][j].backtracked:
-                        solve_cells_backtracked += 1
-                self.cells[i][j].has_left_wall = True
-                self.cells[i][j].has_right_wall = True
-                self.cells[i][j].has_top_wall = True
-                self.cells[i][j].has_bottom_wall = True
-                self.cells[i][j].visited = False
-                self.cells[i][j].backtracked = False
-        solve_eff = int((solve_cells_visited / (self.grid_size**2)) * 100)
-        backtrack_eff = int((solve_cells_backtracked / solve_cells_visited) * 100)
-        print("----------------")
-        print(f"total cells: {self.grid_size**2}")
-        print("----------------")
-        print(f"cells in solve: {solve_cells_visited}")
-        print(f"solve eff: {solve_eff}%")
-        print("----------------")
-        print(f"cells backtracked: {solve_cells_backtracked}")
-        print(f"backtracking: {backtrack_eff}%")
-        print("----------------")
-        return solve_cells_visited, solve_eff, solve_cells_backtracked, backtrack_eff

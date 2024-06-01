@@ -7,4 +7,4 @@ def main():
     grid = Grid()
     grid.win.wait_for_close()
 
-main() 
+main()
