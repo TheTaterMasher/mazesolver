@@ -1,7 +1,7 @@
 from random import randint, seed
 from time import sleep
+from cell import Cell
 from graphics import Window, Point, Line, Circle
-from tkinter import Button
 class Grid():
     def __init__(self, grid_size, display_size):
         self.grid_size = grid_size
@@ -178,39 +178,28 @@ class Grid():
             print("--End Reached--")
         else:
             print("--End Not Found--")
-        # reset cells walls and visited state
         solve_cells_visited = 0
-        cells_backtracked = 0
-
+        solve_cells_backtracked = 0
+        # reset cells walls and visited state
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 if self.cells[i][j].visited:
                     solve_cells_visited += 1
                     if self.cells[i][j].backtracked:
-                        cells_backtracked += 1
+                        solve_cells_backtracked += 1
                 self.cells[i][j].has_left_wall = True
                 self.cells[i][j].has_right_wall = True
                 self.cells[i][j].has_top_wall = True
                 self.cells[i][j].has_bottom_wall = True
                 self.cells[i][j].visited = False
                 self.cells[i][j].backtracked = False
+
         print("----------------")
         print(f"total cells: {self.grid_size**2}")
         print("----------------")
         print(f"cells in solve: {solve_cells_visited}")
         print(f"solve eff: {int((solve_cells_visited / (self.grid_size**2)) * 100)}%")
         print("----------------")
-        print(f"cells backtracked: {cells_backtracked}")
-        print(f"backtracking: {int((cells_backtracked / solve_cells_visited) * 100)}%")
+        print(f"cells backtracked: {solve_cells_backtracked}")
+        print(f"backtracking: {int((solve_cells_backtracked / solve_cells_visited) * 100)}%")
         print("----------------")
-
-class Cell():
-    def __init__(self, x, y): # the cell's (x,y) cords are its top left corner
-        self.x = x
-        self.y = y
-        self.backtracked = False
-        self.has_left_wall = True
-        self.has_right_wall = True
-        self.has_top_wall = True
-        self.has_bottom_wall = True
-        self.visited = False
