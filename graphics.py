@@ -1,12 +1,12 @@
 from tkinter import Tk, BOTH, Canvas, Button
 
 class Window():
-    def __init__(self, width, height, button_func=None):
+    def __init__(self, display_size=1000, button_func=None):
         self.__root = Tk()
         self.__root.title("Maze Solver")
         self.__root.protocol("WM_DELETE_WINDOW", self.close)
         self.button = Button(text="SOLVE", width=15, height=3, bg="blue", fg="yellow", command=button_func)
-        self.canvas = Canvas(self.__root, bd=5, bg="white", cursor="circle", height=height, relief="flat", width=width)
+        self.canvas = Canvas(self.__root, bd=5, bg="white", cursor="circle", height=display_size, relief="flat", width=display_size)
         self.canvas.pack(fill=BOTH, expand=1)
         self.button.pack(fill=BOTH, expand=1)
         self.active = False

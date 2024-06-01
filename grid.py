@@ -2,13 +2,15 @@ from random import randint, seed
 from time import sleep
 from cell import Cell
 from graphics import Window, Point, Line, Circle
+import csv
+import os
 class Grid():
-    def __init__(self, grid_size, display_size):
+    def __init__(self, grid_size=18, display_size=1000):
         self.grid_size = grid_size
         self.display_size = display_size
         self.cell_size = display_size // (grid_size + 1)
         self.offset = self.cell_size // 2
-        self.win = Window(display_size, display_size, button_func=self.reset_button_func)
+        self.win = Window(display_size, self.reset_button_func)
         self.points = []
         self.cells = []
         self.grid_lines = {}
@@ -35,12 +37,23 @@ class Grid():
                     p1 = Point((self.offset+(j*self.cell_size)), (self.offset+(i*self.cell_size)))
                     p2 = Point((self.offset+(j*self.cell_size)), (self.offset+((i+1)*self.cell_size)))
                     self.grid_lines[(self.points[i][j],self.points[i+1][j])] = Line(p1, p2, self.win.canvas)
+        
+        # create the stats file and the header
+        if not os.path.exists("stats.csv"):
+            with open("stats.csv", "w", newline="") as stats:
+                writer = csv.writer(stats)
+                field = ["Grid Size", "Solve Length", "Solve Efficiency", "Backtracked Cells", "Backtrack Efficiency"]
+                writer.writerow(field)
 
     def reset_button_func(self):
         self.reset_grid()
         self.create_maze()
         sleep(0.5)
-        self.solve()
+        results = self.solve()
+        with open("stats.csv", "a", newline="") as stats:
+            writer = csv.writer(stats) 
+            writer.writerow([f"{self.grid_size}", f"{results[0]}", f"{results[1]}", f"{results[2]}", f"{results[3]}"])
+            
 
     def reset_grid(self):
         # reset lines
@@ -193,13 +206,15 @@ class Grid():
                 self.cells[i][j].has_bottom_wall = True
                 self.cells[i][j].visited = False
                 self.cells[i][j].backtracked = False
-
+        solve_eff = int((solve_cells_visited / (self.grid_size**2)) * 100)
+        backtrack_eff = int((solve_cells_backtracked / solve_cells_visited) * 100)
         print("----------------")
         print(f"total cells: {self.grid_size**2}")
         print("----------------")
         print(f"cells in solve: {solve_cells_visited}")
-        print(f"solve eff: {int((solve_cells_visited / (self.grid_size**2)) * 100)}%")
+        print(f"solve eff: {solve_eff}%")
         print("----------------")
         print(f"cells backtracked: {solve_cells_backtracked}")
-        print(f"backtracking: {int((solve_cells_backtracked / solve_cells_visited) * 100)}%")
+        print(f"backtracking: {backtrack_eff}%")
         print("----------------")
+        return solve_cells_visited, solve_eff, solve_cells_backtracked, backtrack_eff
