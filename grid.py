@@ -210,12 +210,12 @@ class Grid():
         self.win.redraw()
         sleep(0.05) # sleep to show the solve steps
         
+        current = self.cells[i][j]
+        current.visited = True
+        
         # check if at exit cell
         if i == self.grid_size-1 and j == self.grid_size-1:
             return True
-        
-        current = self.cells[i][j]
-        current.visited = True
 
         # [i][j] = (y,x)
         directions = [(0,1), (1,0), (0, -1), (-1, 0)] # right  down  left  up
