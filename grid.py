@@ -12,7 +12,7 @@ class Grid():
         self.display_size = display_size
         self.cell_size = display_size // (grid_size + 1)
         self.offset = self.cell_size // 2
-        self.win = Window(display_size, self.reset_button_func, self.set_grid_size_button_func)
+        self.win = Window(display_size, self.reset_button_func, self.add_grid_size_button_func, self.remove_grid_size_button_func)
         self.is_solving = False
         self.points = []
         self.cells = []
@@ -62,7 +62,7 @@ class Grid():
             writer = csv.writer(stats) 
             writer.writerow([f"{self.grid_size}", f"{results[0]}", f"{results[1]}", f"{results[2]}", f"{results[3]}"])
 
-    def set_grid_size_button_func(self):
+    def add_grid_size_button_func(self):
         # prevent the button from working while a solve is in progress
         if self.is_solving:
             return
@@ -70,10 +70,20 @@ class Grid():
         self.grid_size += 4
         if self.grid_size >32:
             self.grid_size = 4
-        self.cell_size = self.display_size // (self.grid_size + 1)
-        self.offset = self.cell_size // 2
         self.reset_grid()
-        self.win.set_grid_size_button.pack(fill=BOTH, expand=1)
+        self.win.add_grid_size_button.pack(fill=BOTH, expand=1)
+        self.win.redraw()
+    
+    def remove_grid_size_button_func(self):
+        # prevent the button from working while a solve is in progress
+        if self.is_solving:
+            return
+        # cycle grid size from 4 to 32 by an increment of 4
+        self.grid_size -= 4
+        if self.grid_size <4:
+            self.grid_size = 32
+        self.reset_grid()
+        self.win.remove_grid_size_button.pack(fill=BOTH, expand=1)
         self.win.redraw()
 
     def reset_grid(self):
@@ -82,6 +92,9 @@ class Grid():
         self.cells = []
         self.grid_lines = {}
         self.solve_lines = {}
+
+        self.cell_size = self.display_size // (self.grid_size + 1)
+        self.offset = self.cell_size // 2
 
         # reset canvas
         self.win.canvas.delete("all")
