@@ -183,7 +183,8 @@ class Grid():
         self.is_solving = True
         self.current_cell = Circle(self.offset+(self.cell_size//4), self.offset+(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.offset+self.cell_size-(self.cell_size//4), self.win.canvas)
         
-        self.solve_r(0, 0)
+        self.solve_r_dfs(0, 0)
+        #self.solve_bfs()
 
         solve_cells_visited = 0
         solve_cells_backtracked = 0
@@ -203,19 +204,10 @@ class Grid():
                 self.cells[i][j].backtracked = False
         solve_eff = int((solve_cells_visited / (self.grid_size**2)) * 100)
         backtrack_eff = int((solve_cells_backtracked / solve_cells_visited) * 100)
-        # print("----------------")
-        # print(f"total cells: {self.grid_size**2}")
-        # print("----------------")
-        # print(f"cells in solve: {solve_cells_visited}")
-        # print(f"solve eff: {solve_eff}%")
-        # print("----------------")
-        # print(f"cells backtracked: {solve_cells_backtracked}")
-        # print(f"backtracking: {backtrack_eff}%")
-        # print("----------------")
         self.is_solving = False
         return solve_cells_visited, solve_eff, solve_cells_backtracked, backtrack_eff
 
-    def solve_r(self, i, j):
+    def solve_r_dfs(self, i, j):
         # redraw circle at current cell
         self.win.canvas.delete(self.current_cell.circle_id)
         self.current_cell = Circle(self.offset+(j*self.cell_size)+(self.cell_size//4), self.offset+(i*self.cell_size)+(self.cell_size//4), self.offset+((j+1)*self.cell_size)-(self.cell_size//4), self.offset+((i+1)*self.cell_size)-(self.cell_size//4), self.win.canvas)
@@ -237,29 +229,29 @@ class Grid():
             direction = directions.pop(0) # move in constant directions order
             h = i + direction[0]
             k = j + direction[1]
-            valid_dir = False
-            match direction:
-                case (0,1): # right
-                    if not current.has_right_wall:
-                        valid_dir = True
-                case (1,0): # down
-                    if not current.has_bottom_wall:
-                        valid_dir = True
-                case (0,-1): # left
-                    if not current.has_left_wall:
-                        valid_dir = True
-                case (-1,0): # up
-                    if not current.has_top_wall:
-                        valid_dir = True
-            if valid_dir:
-                if 0 <= h < self.grid_size and 0 <= k < self.grid_size: # is valid direction
+            if 0 <= h < self.grid_size and 0 <= k < self.grid_size: # is valid direction
+                valid_dir = False
+                match direction:
+                    case (0,1): # right
+                        if not current.has_right_wall:
+                            valid_dir = True
+                    case (1,0): # down
+                        if not current.has_bottom_wall:
+                            valid_dir = True
+                    case (0,-1): # left
+                        if not current.has_left_wall:
+                            valid_dir = True
+                    case (-1,0): # up
+                        if not current.has_top_wall:
+                            valid_dir = True
+                if valid_dir:
                     next = self.cells[h][k]
                     if not next.visited: # next not visited yet
                         # draw line from current cell to next cell
                         p1 = Point((self.cell_size+(j*self.cell_size)), (self.cell_size+(i*self.cell_size)))
                         p2 = Point((self.cell_size+(k*self.cell_size)), (self.cell_size+(h*self.cell_size)))
                         self.solve_lines[(self.points[i][j],self.points[h][k])] = Line(p1, p2, self.win.canvas, capstyle="round", fill_color="blue", width=6)
-                        if self.solve_r(h,k):
+                        if self.solve_r_dfs(h,k):
                             return True
                         else:
                             # redraw line in new color to indicate backtracking
@@ -271,3 +263,52 @@ class Grid():
                             self.win.redraw()
                             sleep(.2) # sleep to make backtracking slightly slower
         self.cells[i][j].backtracked = True
+    
+    def solve_bfs(self): # que stores cells as (i,j) or (y,x) cords
+        queue = [(0,0)]
+
+        while queue:
+            self.win.redraw()
+            sleep(0.05) # sleep to show the solve step
+
+            i, j = queue.pop(0)
+            current = self.cells[i][j]
+            current.visited = True
+
+            # check if at exit cell
+            if i == self.grid_size-1 and j == self.grid_size-1:
+                # redraw circle at exit cell
+                self.win.canvas.delete(self.current_cell.circle_id)
+                self.current_cell = Circle(self.offset+(j*self.cell_size)+(self.cell_size//4), self.offset+(i*self.cell_size)+(self.cell_size//4), self.offset+((j+1)*self.cell_size)-(self.cell_size//4), self.offset+((i+1)*self.cell_size)-(self.cell_size//4), self.win.canvas)
+                return True
+            
+            # [i][j] = (y,x)
+            directions = [(0,1), (1,0), (0, -1), (-1, 0)] # right  down  left  up
+
+            while directions:
+                direction = directions.pop(0) # move in constant directions order
+                h = i + direction[0]
+                k = j + direction[1]
+                if 0 <= h < self.grid_size and 0 <= k < self.grid_size: # is valid direction
+                    valid_dir = False
+                    match direction:
+                        case (0,1): # right
+                            if not current.has_right_wall:
+                                valid_dir = True
+                        case (1,0): # down
+                            if not current.has_bottom_wall:
+                                valid_dir = True
+                        case (0,-1): # left
+                            if not current.has_left_wall:
+                                valid_dir = True
+                        case (-1,0): # up
+                            if not current.has_top_wall:
+                                valid_dir = True
+                    if valid_dir:
+                        next = self.cells[h][k]
+                        if not next.visited: # next not visited yet
+                            queue.append((h,k))
+                            # draw line from current cell to next cell
+                            p1 = Point((self.cell_size+(j*self.cell_size)), (self.cell_size+(i*self.cell_size)))
+                            p2 = Point((self.cell_size+(k*self.cell_size)), (self.cell_size+(h*self.cell_size)))
+                            self.solve_lines[(self.points[i][j],self.points[h][k])] = Line(p1, p2, self.win.canvas, capstyle="round", fill_color="gray", width=6)
